@@ -6,10 +6,12 @@ import React, {
 import {
   AlertIOS,
   AppRegistry,
+  Image,
   Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
+  TVEventHandler,
   View,
 } from 'react-native';
 
@@ -36,6 +38,34 @@ class VideoPlayer extends Component {
     isBuffering: false,
   };
 
+  player: any;
+
+  _tvEventHandler: any;
+
+  _enableTVEventHandler() {
+    this._tvEventHandler = new TVEventHandler();
+    this._tvEventHandler.enable(this, function(cmp, evt) {
+      if(evt && evt.eventType === 'playPause') {
+        cmp.setState({paused: !cmp.state.paused});
+      }
+    });
+  }
+
+  _disableTVEventHandler() {
+    if (this._tvEventHandler) {
+      this._tvEventHandler.disable();
+      delete this._tvEventHandler;
+    }
+  }
+
+  componentDidMount() {
+    this._enableTVEventHandler();
+  }
+
+  componentWillUnmount() {
+    this._disableTVEventHandler();
+  }
+
   onLoad(data) {
     console.log('On load fired!');
     this.setState({duration: data.duration});
@@ -58,11 +88,18 @@ class VideoPlayer extends Component {
   }
 
   renderPlayPauseControl() {
+    var imageName = this.state.paused ? 'play' : 'pause';
     return (
       <TouchableOpacity hasTVPreferredFocus={true} onPress={() => this.setState({paused: !this.state.paused})}>
-        <Text style={styles.controlOption}>
-          {this.state.paused ? 'Play' : 'Pause'}
-        </Text>
+        <Image source={{uri: imageName}} style={{width: 200, height: 256}} />
+      </TouchableOpacity>
+    );
+  }
+
+  renderRewindControl() {
+    return (
+      <TouchableOpacity onPress={() => this.player.seek(0)}>
+        <Image source={{uri: 'back'}} style={{width: 200, height: 256}} />
       </TouchableOpacity>
     );
   }
@@ -137,6 +174,9 @@ class VideoPlayer extends Component {
     return (
       <View style={styles.container}>
           <Video
+            ref={(ref) => {
+              this.player = ref
+            }} 
             source={{uri: 'bach-handel-corelli', type: 'mp4'}}
             style={styles.fullScreen}
             rate={this.state.rate}
@@ -154,22 +194,21 @@ class VideoPlayer extends Component {
 
         <View style={styles.controls}>
           <View style={styles.generalControls}>
-            <View style={styles.playPauseControl}>
-              {this.renderPlayPauseControl()}
+            <View style={styles.generalControls}>
+              <View style={styles.playPauseControl}>
+                {this.renderRewindControl()}
+                {this.renderPlayPauseControl()}
+              </View>
             </View>
-          </View>
-          <View style={styles.generalControls}>
-            <View style={styles.skinControl}>
-              {this.renderSkinControl('custom')}
-              {this.renderSkinControl('native')}
-              {this.renderSkinControl('embed')}
-            </View>
-          </View>
-          <View style={styles.generalControls}>
             <View style={styles.rateControl}>
               {this.renderRateControl(0.5)}
               {this.renderRateControl(1.0)}
               {this.renderRateControl(2.0)}
+            </View>
+            <View style={styles.skinControl}>
+              {this.renderSkinControl('custom')}
+              {this.renderSkinControl('native')}
+              {this.renderSkinControl('embed')}
             </View>
 
             <View style={styles.volumeControl}>
@@ -183,10 +222,9 @@ class VideoPlayer extends Component {
               {this.renderResizeModeControl('contain')}
               {this.renderResizeModeControl('stretch')}
             </View>
-          </View>
           <View style={styles.generalControls}>
             {
-              (Platform.OS === 'ios') ?
+              (Platform.OS === 'ios' && !Platform.isTVOS) ?
                 <View style={styles.ignoreSilentSwitchControl}>
                   {this.renderIgnoreSilentSwitchControl('ignore')}
                   {this.renderIgnoreSilentSwitchControl('obey')}
@@ -194,6 +232,7 @@ class VideoPlayer extends Component {
             }
           </View>
 
+          </View>
           <View style={styles.trackingControls}>
             <View style={styles.progress}>
               <View style={[styles.innerProgressCompleted, {flex: flexCompleted}]} />
@@ -211,6 +250,9 @@ class VideoPlayer extends Component {
       <View style={styles.container}>
         <View style={styles.fullScreen}>
           <Video
+            ref={(ref) => {
+              this.player = ref
+            }} 
             source={{uri: 'bach-handel-corelli', type: 'mp4'}}
             style={videoStyle}
             rate={this.state.rate}
@@ -230,17 +272,14 @@ class VideoPlayer extends Component {
         <View style={styles.controls}>
           <View style={styles.generalControls}>
             <View style={styles.playPauseControl}>
+              {this.renderRewindControl()}
               {this.renderPlayPauseControl()}
             </View>
-          </View>
-          <View style={styles.generalControls}>
             <View style={styles.skinControl}>
               {this.renderSkinControl('custom')}
               {this.renderSkinControl('native')}
               {this.renderSkinControl('embed')}
             </View>
-          </View>
-          <View style={styles.generalControls}>
             <View style={styles.rateControl}>
               {this.renderRateControl(0.5)}
               {this.renderRateControl(1.0)}
@@ -261,7 +300,7 @@ class VideoPlayer extends Component {
           </View>
           <View style={styles.generalControls}>
             {
-              (Platform.OS === 'ios') ?
+              (Platform.OS === 'ios' && !Platform.isTVOS) ?
                 <View style={styles.ignoreSilentSwitchControl}>
                   {this.renderIgnoreSilentSwitchControl('ignore')}
                   {this.renderIgnoreSilentSwitchControl('obey')}
